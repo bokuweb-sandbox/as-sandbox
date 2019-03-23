@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AssemblyScript</title>
+    <style>
+      img {
+        margin: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <img class="before" src="./images/before.png" />
+    <img class="after" src="./images/after.png" />
+    <canvas class="diff" width="800" height="568"/>
+    <script>
+      "use strict";
+
+      function getImageDate(selector) {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        const img = document.querySelector(selector);
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0);
+        return context.getImageData(0, 0, img.width, img.height);
+      }
+
+      var memory = new WebAssembly.Memory({
+        initial: ((800 * 568 * 4 * 4) & ~0xffff) >>> 16
+      });
+      // Fetch and instantiate the module
+      fetch("build/untouched.wasm")
+        .then(response => response.arrayBuffer())
+        .then(buffer =>
+          WebAssembly.instantiate(buffer, {
+            env: {
+              memory,
+              abort: function() {}
+            },
+
+          })
+        )
+        .then(obj => {
+          const exports = obj.instance.exports;
+          const mem = new Uint8ClampedArray(memory.buffer);
+          const before = getImageDate(".before").data;
+          const after = getImageDate(".after").data;
+          mem.set(before);
+          mem.set(after, before.length);
+          console.log(
+            exports.pixelmatch(before.length, after.length, 800, 568, 0.1)
+          );
+          const canvas = document.querySelector(".diff");
+          const ctx = canvas.getContext("2d");
+          const d = ctx.createImageData(800, 568)
+          d.data.set(new Uint8ClampedArray(mem.buffer, before.length + after.length, 800 * 568 * 4));
+          ctx.putImageData(d, 0, 0);
+        })
+        .catch(err => {
+          alert(
+            "Failed to load WASM: " + err.message + " (ad blocker, maybe?)"
+          );
+          console.log(err.stack);
+        });
+    </script>
+  </body>
+</html>

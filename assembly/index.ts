@@ -1,19 +1,13 @@
 // The entry file of your WebAssembly module.
 
-import "allocator/tlsf";
-
-declare namespace console {
-  function log(s: string): void;
-}
-
 /** Gets an input pixel in the range [0, s]. */
-function get(addr: u32, offset: u32): u32 {
-  return load<u32>(addr + offset) & 0xff;
+function get(addr: u32, offset: u32): u8 {
+  return load<u8>(addr + offset);
 }
 
 /** Sets an output pixel in the range [s, 2*s]. */
-function set(addr: u32, offset: u32, value: u32): void {
-  store<u32>(addr + offset, value);
+function set(addr: u32, offset: u32, value: u8): void {
+  store<u8>(addr + offset, value);
 }
 
 export function add(a: u32, b: u32): u32 {
@@ -120,9 +114,9 @@ function rgb2q(r: f32, g: f32, b: f32): f32 {
 }
 
 function drawPixel(offset: u32, pos: u32, r: u32, g: u32, b: u32): void {
-  set(pos + 0, offset, r);
-  set(pos + 1, offset, g);
-  set(pos + 2, offset, b);
+  set(pos + 0, offset, r as u8);
+  set(pos + 1, offset, g as u8);
+  set(pos + 2, offset, b as u8);
   set(pos + 3, offset, 255);
 }
 
